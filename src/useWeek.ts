@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { loadWeek, saveWeek } from './storage'
-import type { Exercise, WeekData, Workout } from './types'
+import type { WeekData, Workout, WorkoutType } from './types'
 import { getISOWeekId, offsetWeek } from './weekUtils'
 
 function uid() {
@@ -28,17 +28,17 @@ export function useWeek() {
     setWeek(loadWeek(id))
   }, [])
 
-  const addWorkout = useCallback((day: number, name: string, exercises: Exercise[]) => {
-    const workout: Workout = { id: uid(), name, exercises, completed: false, day }
+  const addWorkout = useCallback((day: number, name: string, type: WorkoutType, distance?: number, goals?: string[]) => {
+    const workout: Workout = { id: uid(), name, type, completed: false, day, distance, goals }
     const updated = { ...week, workouts: [...week.workouts, workout] }
     persist(updated)
   }, [week, persist])
 
-  const updateWorkout = useCallback((workoutId: string, name: string, exercises: Exercise[]) => {
+  const updateWorkout = useCallback((workoutId: string, name: string, type: WorkoutType, distance?: number, goals?: string[]) => {
     const updated = {
       ...week,
       workouts: week.workouts.map(w =>
-        w.id === workoutId ? { ...w, name, exercises } : w
+        w.id === workoutId ? { ...w, name, type, distance, goals } : w
       ),
     }
     persist(updated)
@@ -69,7 +69,6 @@ export function useWeek() {
       ...w,
       id: uid(),
       completed: false,
-      exercises: w.exercises.map(e => ({ ...e, id: uid() })),
     }))
     const updated: WeekData = {
       weekId: nextId,

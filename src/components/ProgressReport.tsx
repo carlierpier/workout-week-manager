@@ -1,5 +1,5 @@
 import type { WeekData } from '../types'
-import { DAY_NAMES_FULL } from '../types'
+import { DAY_NAMES_FULL, WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS, hasDistance } from '../types'
 import { formatWeekRange } from '../weekUtils'
 
 interface ProgressReportProps {
@@ -13,17 +13,14 @@ export function ProgressReport({ week, weekId, onClose }: ProgressReportProps) {
   const completed = week.workouts.filter(w => w.completed).length
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0
 
-  const totalExercises = week.workouts.reduce((sum, w) => sum + w.exercises.length, 0)
-  const completedExercises = week.workouts
-    .filter(w => w.completed)
-    .reduce((sum, w) => sum + w.exercises.length, 0)
-
-  const totalSets = week.workouts.reduce(
-    (sum, w) => sum + w.exercises.reduce((s, e) => s + e.sets, 0), 0
-  )
-  const completedSets = week.workouts
-    .filter(w => w.completed)
-    .reduce((sum, w) => sum + w.exercises.reduce((s, e) => s + e.sets, 0), 0)
+  const distanceByType = (['running', 'indoor-bike'] as const).map(type => {
+    const typeWorkouts = week.workouts.filter(w => w.type === type && hasDistance(w.type))
+    const totalKm = typeWorkouts.reduce((sum, w) => sum + (w.distance ?? 0), 0)
+    const completedKm = typeWorkouts
+      .filter(w => w.completed)
+      .reduce((sum, w) => sum + (w.distance ?? 0), 0)
+    return { type, totalKm, completedKm, count: typeWorkouts.length }
+  }).filter(d => d.count > 0)
 
   const byDay = DAY_NAMES_FULL.map((name, i) => {
     const dayWorkouts = week.workouts.filter(w => w.day === i)
@@ -71,18 +68,24 @@ export function ProgressReport({ week, weekId, onClose }: ProgressReportProps) {
               <div className="report-hero-stats">
                 <div className="stat">
                   <span className="stat-value">{completed}/{total}</span>
-                  <span className="stat-label">Workouts</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-value">{completedExercises}/{totalExercises}</span>
-                  <span className="stat-label">Exercises</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-value">{completedSets}/{totalSets}</span>
-                  <span className="stat-label">Sets</span>
+                  <span className="stat-label">Workouts completed</span>
                 </div>
               </div>
             </div>
+
+            {distanceByType.length > 0 && (
+              <div className="report-distance">
+                <h3>Distance</h3>
+                <div className="distance-cards">
+                  {distanceByType.map(d => (
+                    <div key={d.type} className="distance-card" style={{ borderColor: WORKOUT_TYPE_COLORS[d.type] }}>
+                      <span className="distance-type">{WORKOUT_TYPE_LABELS[d.type]}</span>
+                      <span className="distance-value">{d.completedKm.toFixed(1)} / {d.totalKm.toFixed(1)} km</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="report-days">
               <h3>By day</h3>

@@ -205,6 +205,74 @@ body {
   color: var(--accent);
 }
 
+/* View Toggle */
+
+.view-toggle {
+  display: flex;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-2);
+  overflow: hidden;
+}
+.toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.toggle-btn:hover { color: var(--text); }
+.toggle-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* Type Badge */
+
+.type-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Type Selector (modal) */
+
+.type-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.type-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--surface-2);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.type-chip:hover { border-color: var(--text-muted); color: var(--text); }
+.type-chip.active {
+  border-color: transparent;
+  color: white;
+}
+.type-chip.active[data-type="running"] { background: #f59e0b; }
+.type-chip.active[data-type="indoor-bike"] { background: #06b6d4; }
+.type-chip.active[data-type="street-workout"] { background: #8b5cf6; }
+.type-chip.active[data-type="strength"] { background: #ef4444; }
+
 /* Workout Card */
 
 .workout-card {
@@ -212,12 +280,33 @@ body {
   border-radius: var(--radius-sm);
   padding: 10px;
   border: 1px solid transparent;
+  border-left: 3px solid transparent;
   transition: border-color 0.15s;
 }
-.workout-card:hover { border-color: var(--surface-2); }
+.workout-card:hover { border-color: var(--surface-2); border-left-color: inherit; }
 .workout-card.completed {
   opacity: 0.7;
-  border-color: var(--success);
+}
+
+.workout-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 4px 0 0 30px;
+}
+
+.workout-goals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 0 0 30px;
+}
+.goal-tag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .workout-card-header {
@@ -266,34 +355,6 @@ body {
 }
 .workout-card:hover .workout-actions { opacity: 1; }
 
-.expand-hint {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  padding: 4px 0 0 30px;
-  cursor: pointer;
-  text-align: left;
-}
-.expand-hint:hover { color: var(--accent); }
-
-.exercise-list {
-  list-style: none;
-  padding: 8px 0 0 30px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.exercise-item {
-  font-size: 0.78rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  align-items: baseline;
-}
-.exercise-name { font-weight: 500; }
-.exercise-detail { color: var(--text-muted); }
-.exercise-notes { color: var(--text-muted); font-style: italic; width: 100%; }
 
 /* Modal */
 
@@ -362,45 +423,85 @@ body {
 .form-group input:focus { border-color: var(--accent); }
 .form-group input::placeholder { color: var(--text-muted); opacity: 0.6; }
 
-.form-group.compact {
-  margin-bottom: 0;
-  flex: 1;
-}
-.form-group.compact input {
-  padding: 8px 10px;
-  font-size: 0.85rem;
-}
-
-.exercises-section {
+.goals-section {
   margin-top: 16px;
 }
-.exercises-section h3 {
+.goals-section h3 {
   font-size: 0.9rem;
   margin-bottom: 12px;
   color: var(--text-muted);
 }
-
-.exercise-form {
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-  margin-bottom: 8px;
-}
-.exercise-form-row {
+.goal-row {
   display: flex;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
 }
-.exercise-name-input { flex: 1; }
-.exercise-form-details {
+.goal-row input {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--surface-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.goal-row input:focus { border-color: var(--accent); }
+.goal-row input::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+.add-goal-btn { width: 100%; margin-top: 4px; }
+
+/* List View */
+
+.list-view {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.list-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 48px 16px;
+}
+.list-empty p + p { margin-top: 8px; font-size: 0.85rem; }
+
+.list-day-group {
+  margin-bottom: 16px;
+}
+.list-day-header {
   display: flex;
+  align-items: center;
   gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface-2);
   margin-bottom: 8px;
 }
-.notes-input { font-size: 0.8rem !important; }
+.list-day-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  flex: 1;
+}
+.list-day-workouts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.list-day-empty {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  padding: 4px 0;
+}
 
-.add-exercise-btn { width: 100%; margin-top: 4px; }
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
 
 /* Progress Report */
 
@@ -450,6 +551,41 @@ body {
 }
 .stat-value { font-size: 1.1rem; font-weight: 700; }
 .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Distance Report */
+
+.report-distance {
+  margin-bottom: 20px;
+}
+.report-distance h3 {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.distance-cards {
+  display: flex;
+  gap: 12px;
+}
+.distance-card {
+  flex: 1;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  border-left: 3px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.distance-type {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.distance-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
 
 .report-days { margin-top: 8px; }
 .report-days h3 {

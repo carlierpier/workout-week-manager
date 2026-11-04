@@ -1,18 +1,42 @@
-export interface Exercise {
-  id: string;
-  name: string;
-  sets: number;
-  reps: number;
-  weight?: number;
-  notes?: string;
+export const WORKOUT_TYPES = [
+  'running',
+  'indoor-bike',
+  'street-workout',
+  'strength',
+] as const;
+
+export type WorkoutType = typeof WORKOUT_TYPES[number];
+
+export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
+  'running': 'Running',
+  'indoor-bike': 'Indoor Bike',
+  'street-workout': 'Street Workout',
+  'strength': 'Strength',
+};
+
+export const WORKOUT_TYPE_COLORS: Record<WorkoutType, string> = {
+  'running': '#f59e0b',
+  'indoor-bike': '#06b6d4',
+  'street-workout': '#8b5cf6',
+  'strength': '#ef4444',
+};
+
+export function hasDistance(type: WorkoutType): boolean {
+  return type === 'running' || type === 'indoor-bike';
+}
+
+export function hasGoals(type: WorkoutType): boolean {
+  return type === 'strength' || type === 'street-workout';
 }
 
 export interface Workout {
   id: string;
   name: string;
-  exercises: Exercise[];
+  type: WorkoutType;
   completed: boolean;
   day: number; // 0=Monday, 6=Sunday
+  distance?: number; // km, for running and indoor-bike
+  goals?: string[]; // target exercises, for strength and street-workout
 }
 
 export interface WeekData {

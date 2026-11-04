@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import type { Workout } from '../types'
+import { WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS, hasDistance, hasGoals } from '../types'
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -9,10 +9,10 @@ interface WorkoutCardProps {
 }
 
 export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: WorkoutCardProps) {
-  const [expanded, setExpanded] = useState(false)
+  const typeColor = WORKOUT_TYPE_COLORS[workout.type]
 
   return (
-    <div className={`workout-card ${workout.completed ? 'completed' : ''}`}>
+    <div className={`workout-card ${workout.completed ? 'completed' : ''}`} style={{ borderLeftColor: typeColor }}>
       <div className="workout-card-header">
         <button
           className={`check-btn ${workout.completed ? 'checked' : ''}`}
@@ -21,11 +21,11 @@ export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: Wor
         >
           {workout.completed ? '✓' : ''}
         </button>
-        <span
-          className="workout-name"
-          onClick={() => setExpanded(!expanded)}
-        >
+        <span className="workout-name">
           {workout.name}
+        </span>
+        <span className="type-badge" style={{ background: typeColor }}>
+          {WORKOUT_TYPE_LABELS[workout.type]}
         </span>
         <div className="workout-actions">
           <button className="icon-btn" onClick={onEdit} aria-label="Edit">
@@ -36,24 +36,17 @@ export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: Wor
           </button>
         </div>
       </div>
-      {expanded && workout.exercises.length > 0 && (
-        <ul className="exercise-list">
-          {workout.exercises.map(ex => (
-            <li key={ex.id} className="exercise-item">
-              <span className="exercise-name">{ex.name}</span>
-              <span className="exercise-detail">
-                {ex.sets} &times; {ex.reps}
-                {ex.weight != null && ex.weight > 0 ? ` @ ${ex.weight}kg` : ''}
-              </span>
-              {ex.notes && <span className="exercise-notes">{ex.notes}</span>}
-            </li>
-          ))}
-        </ul>
+      {hasDistance(workout.type) && workout.distance != null && workout.distance > 0 && (
+        <div className="workout-meta">
+          {workout.distance} km
+        </div>
       )}
-      {!expanded && workout.exercises.length > 0 && (
-        <button className="expand-hint" onClick={() => setExpanded(true)}>
-          {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
-        </button>
+      {hasGoals(workout.type) && workout.goals && workout.goals.length > 0 && (
+        <div className="workout-goals">
+          {workout.goals.map((goal, i) => (
+            <span key={i} className="goal-tag">{goal}</span>
+          ))}
+        </div>
       )}
     </div>
   )
