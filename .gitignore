@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# claude files
+default*
+default_2958514600864934118_0_3374

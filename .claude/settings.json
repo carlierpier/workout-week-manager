@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm ls *)",
+      "Bash(jobs -l)",
+      "Bash(awk '{print $1}')",
+      "Bash(kill %1)"
+    ]
+  }
+}

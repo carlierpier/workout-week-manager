@@ -1,32 +1,60 @@
-# React + TypeScript + Vite
+# Workout Week Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A client-side PWA (+ native iOS via Expo) for planning and tracking weekly workouts. No backend — all data lives on-device (`localStorage` on web, `AsyncStorage` on native).
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Weekly calendar and list views for organizing workouts
+- Workout types: Running, Indoor Bike, Street Workout, Strength
+- Distance tracking for running and cycling
+- Goals for strength and street workouts
+- Progress report with completion ring and distance stats
+- Copy current week to next week
+- Installable PWA with offline support
+- Native iOS app via Expo Go
 
-## React Compiler
+## Web App
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Quick start
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Commands
+
+| Command             | Description                              |
+| ------------------- | ---------------------------------------- |
+| `npm run dev`       | Start Vite dev server with HMR           |
+| `npm run build`     | TypeScript check + production build      |
+| `npm run lint`      | Run oxlint                               |
+| `npm run preview`   | Serve production build locally           |
+
+## Mobile App (Expo)
+
+The native app lives in `mobile/`. It shares the same data model and business logic, rebuilt with React Native components.
+
+### Quick start
+
+```bash
+cd mobile
+npm install
+npx expo login
+npx expo start --tunnel
+```
+
+Scan the QR code with Expo Go on your iPhone.
+
+### Commands
+
+| Command                        | Description                        |
+| ------------------------------ | ---------------------------------- |
+| `npx expo start`               | Start dev server (LAN)             |
+| `npx expo start --tunnel`      | Start dev server (tunnel, any network) |
+
+## Tech Stack
+
+**Web:** React 19, TypeScript, Vite, vite-plugin-pwa
+
+**Mobile:** React Native 0.88, Expo SDK 58, TypeScript, AsyncStorage, react-native-svg
