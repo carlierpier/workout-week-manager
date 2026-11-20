@@ -17,6 +17,14 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/icon.png",
+      "name": "Workout Week",
+      "shortName": "Workout Week",
+      "backgroundColor": "#0f172a",
+      "themeColor": "#0f172a"
     }
   }
 }

@@ -1,5 +1,8 @@
-import type { Workout } from '../types'
-import { WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS, hasDistance, hasGoals } from '../types'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import type { Workout } from '../types';
+import { WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS, hasDistance, hasGoals } from '../types';
+import { colors, radius } from '../theme';
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -9,45 +12,119 @@ interface WorkoutCardProps {
 }
 
 export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: WorkoutCardProps) {
-  const typeColor = WORKOUT_TYPE_COLORS[workout.type]
+  const typeColor = WORKOUT_TYPE_COLORS[workout.type];
 
   return (
-    <div className={`workout-card ${workout.completed ? 'completed' : ''}`} style={{ borderLeftColor: typeColor }}>
-      <div className="workout-card-header">
-        <button
-          className={`check-btn ${workout.completed ? 'checked' : ''}`}
-          onClick={onToggleComplete}
-          aria-label={workout.completed ? 'Mark incomplete' : 'Mark complete'}
-        >
-          {workout.completed ? '✓' : ''}
-        </button>
-        <span className="workout-name">
-          {workout.name}
-        </span>
-        <span className="type-badge" style={{ background: typeColor }}>
-          {WORKOUT_TYPE_LABELS[workout.type]}
-        </span>
-        <div className="workout-actions">
-          <button className="icon-btn" onClick={onEdit} aria-label="Edit">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M11.5 1.5l3 3-9 9H2.5v-3l9-9z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
-          </button>
-          <button className="icon-btn delete-btn" onClick={onDelete} aria-label="Delete">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M5.5 4V3a1 1 0 011-1h3a1 1 0 011 1v1M6.5 7v4M9.5 7v4M4.5 4l.5 8a1 1 0 001 1h4a1 1 0 001-1l.5-8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-        </div>
-      </div>
+    <View style={[styles.card, { borderLeftColor: typeColor }, workout.completed && styles.completed]}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onToggleComplete} style={[styles.checkBtn, workout.completed && styles.checked]}>
+          {workout.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
+        </TouchableOpacity>
+
+        <Text style={styles.name} numberOfLines={1}>{workout.name}</Text>
+
+        <View style={[styles.badge, { backgroundColor: typeColor }]}>
+          <Text style={styles.badgeText}>{WORKOUT_TYPE_LABELS[workout.type]}</Text>
+        </View>
+
+        <TouchableOpacity onPress={onEdit} style={styles.iconBtn} hitSlop={8}>
+          <Ionicons name="pencil" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={onDelete} style={styles.iconBtn} hitSlop={8}>
+          <Ionicons name="trash-outline" size={16} color={colors.danger} />
+        </TouchableOpacity>
+      </View>
+
       {hasDistance(workout.type) && workout.distance != null && workout.distance > 0 && (
-        <div className="workout-meta">
-          {workout.distance} km
-        </div>
+        <Text style={styles.meta}>{workout.distance} km</Text>
       )}
+
       {hasGoals(workout.type) && workout.goals && workout.goals.length > 0 && (
-        <div className="workout-goals">
+        <View style={styles.goals}>
           {workout.goals.map((goal, i) => (
-            <span key={i} className="goal-tag">{goal}</span>
+            <View key={i} style={styles.goalTag}>
+              <Text style={styles.goalText}>{goal}</Text>
+            </View>
           ))}
-        </div>
+        </View>
       )}
-    </div>
-  )
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    padding: 12,
+    borderLeftWidth: 3,
+    marginBottom: 8,
+  },
+  completed: {
+    opacity: 0.6,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checked: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  name: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  iconBtn: {
+    padding: 4,
+  },
+  meta: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 6,
+    marginLeft: 32,
+  },
+  goals: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 8,
+    marginLeft: 32,
+  },
+  goalTag: {
+    backgroundColor: colors.surface2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  goalText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.text,
+  },
+});

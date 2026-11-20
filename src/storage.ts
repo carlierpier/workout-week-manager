@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { WeekData } from './types';
 
 const STORAGE_KEY = 'workout-week-manager';
@@ -12,30 +13,26 @@ function migrate(data: Record<string, WeekData>): Record<string, WeekData> {
   return data;
 }
 
-function loadAll(): Record<string, WeekData> {
+async function loadAll(): Promise<Record<string, WeekData>> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
     return raw ? migrate(JSON.parse(raw)) : {};
   } catch {
     return {};
   }
 }
 
-function saveAll(data: Record<string, WeekData>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+async function saveAll(data: Record<string, WeekData>): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-export function loadWeek(weekId: string): WeekData {
-  const all = loadAll();
+export async function loadWeek(weekId: string): Promise<WeekData> {
+  const all = await loadAll();
   return all[weekId] ?? { weekId, workouts: [] };
 }
 
-export function saveWeek(week: WeekData) {
-  const all = loadAll();
+export async function saveWeek(week: WeekData): Promise<void> {
+  const all = await loadAll();
   all[week.weekId] = week;
-  saveAll(all);
-}
-
-export function getAllWeekIds(): string[] {
-  return Object.keys(loadAll()).sort();
+  await saveAll(all);
 }

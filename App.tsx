@@ -3,14 +3,18 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CalendarView } from './src/components/CalendarView';
 import { ListView } from './src/components/ListView';
 import { WorkoutModal } from './src/components/WorkoutModal';
 import { ProgressReport } from './src/components/ProgressReport';
+import { useResponsive } from './src/hooks/useResponsive';
 import type { WorkoutType } from './src/types';
 import { DAY_NAMES_FULL } from './src/types';
 import { useWeek } from './src/useWeek';
 import { formatWeekRange, isCurrentWeek } from './src/weekUtils';
 import { colors } from './src/theme';
+
+type ViewMode = 'calendar' | 'list';
 
 type ModalState =
   | { open: false }
@@ -32,6 +36,8 @@ export default function App() {
     toggleComplete, copyToNextWeek,
   } = useWeek();
 
+  const { isWide } = useResponsive();
+  const [view, setView] = useState<ViewMode>('calendar');
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [showReport, setShowReport] = useState(false);
 
@@ -86,6 +92,22 @@ export default function App() {
           </View>
 
           <View style={styles.actions}>
+            {isWide && (
+              <View style={styles.viewToggle}>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, view === 'calendar' && styles.toggleBtnActive]}
+                  onPress={() => setView('calendar')}
+                >
+                  <Ionicons name="grid-outline" size={16} color={view === 'calendar' ? colors.text : colors.textMuted} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, view === 'list' && styles.toggleBtnActive]}
+                  onPress={() => setView('list')}
+                >
+                  <Ionicons name="list-outline" size={16} color={view === 'list' ? colors.text : colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+            )}
             {!current && (
               <TouchableOpacity style={styles.ghostBtn} onPress={goToCurrentWeek}>
                 <Text style={styles.ghostBtnText}>Today</Text>
@@ -105,6 +127,14 @@ export default function App() {
           <View style={styles.loading}>
             <ActivityIndicator color={colors.accent} size="large" />
           </View>
+        ) : isWide && view === 'calendar' ? (
+          <CalendarView
+            workouts={week.workouts}
+            onAdd={handleAdd}
+            onEdit={handleEdit}
+            onDelete={deleteWorkout}
+            onToggleComplete={toggleComplete}
+          />
         ) : (
           <ListView
             workouts={week.workouts}
@@ -220,6 +250,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.surface2,
+    overflow: 'hidden',
+  },
+  toggleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  toggleBtnActive: {
+    backgroundColor: colors.surface2,
   },
   loading: {
     flex: 1,
