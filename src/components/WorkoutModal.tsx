@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { WorkoutType } from '../types';
-import { WORKOUT_TYPES, WORKOUT_TYPE_LABELS, WORKOUT_TYPE_COLORS, hasDistance, hasGoals } from '../types';
+import { WORKOUT_TYPES, WORKOUT_TYPE_LABELS, WORKOUT_TYPE_COLORS, WORKOUT_TYPE_DEFAULT_NAMES, hasDistance, hasGoals } from '../types';
 import { colors, radius } from '../theme';
 
 interface WorkoutModalProps {
@@ -21,16 +21,20 @@ interface WorkoutModalProps {
   initialName?: string;
   initialType?: WorkoutType;
   initialDistance?: number;
+  initialActualDistance?: number;
   initialGoals?: string[];
-  onSave: (name: string, type: WorkoutType, distance?: number, goals?: string[]) => void;
+  onSave: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => void;
   onClose: () => void;
 }
 
-export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialGoals, onSave, onClose }: WorkoutModalProps) {
+export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialActualDistance, initialGoals, onSave, onClose }: WorkoutModalProps) {
   const [name, setName] = useState(initialName ?? '');
   const [type, setType] = useState<WorkoutType>(initialType ?? 'strength');
   const [distance, setDistance] = useState(initialDistance != null ? String(initialDistance) : '');
+  const [actualDistance, setActualDistance] = useState(initialActualDistance != null ? String(initialActualDistance) : '');
   const [goals, setGoals] = useState<string[]>(initialGoals ?? ['']);
+  const isEditing = initialName != null;
+  const defaultName = WORKOUT_TYPE_DEFAULT_NAMES[type];
 
   const updateGoal = (index: number, value: string) => {
     setGoals(prev => prev.map((g, i) => i === index ? value : g));
@@ -41,11 +45,14 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
   };
 
   const handleSubmit = () => {
-    if (!name.trim()) return;
+    const finalName = name.trim() || defaultName;
+    if (!finalName) return;
     const dist = hasDistance(type) && distance ? parseFloat(distance) : undefined;
+    const actDist = hasDistance(type) && actualDistance ? parseFloat(actualDistance) : undefined;
     const parsedGoals = hasGoals(type) ? goals.filter(g => g.trim()).map(g => g.trim()) : undefined;
-    onSave(name.trim(), type, dist, parsedGoals);
+    onSave(finalName, type, dist, parsedGoals, actDist);
   };
+  const canSave = !!(name.trim() || defaultName);
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -85,14 +92,14 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="e.g. PULL at Work, 5K Run..."
+              placeholder={defaultName ?? 'e.g. PULL at Work, 5K Run...'}
               placeholderTextColor={colors.textMuted}
               autoFocus
             />
 
             {hasDistance(type) && (
               <>
-                <Text style={styles.label}>Distance (km)</Text>
+                <Text style={styles.label}>Planned distance (km)</Text>
                 <TextInput
                   style={styles.input}
                   value={distance}
@@ -101,6 +108,19 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
                   placeholderTextColor={colors.textMuted}
                   keyboardType="decimal-pad"
                 />
+                {isEditing && (
+                  <>
+                    <Text style={styles.label}>Actual distance (km)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={actualDistance}
+                      onChangeText={setActualDistance}
+                      placeholder="Leave empty if same as planned"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </>
+                )}
               </>
             )}
 
@@ -139,9 +159,9 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}
+              style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
               onPress={handleSubmit}
-              disabled={!name.trim()}
+              disabled={!canSave}
             >
               <Text style={styles.saveText}>{initialName ? 'Save changes' : 'Add workout'}</Text>
             </TouchableOpacity>

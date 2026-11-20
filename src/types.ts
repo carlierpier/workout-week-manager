@@ -21,6 +21,11 @@ export const WORKOUT_TYPE_COLORS: Record<WorkoutType, string> = {
   'strength': '#ef4444',
 };
 
+export const WORKOUT_TYPE_DEFAULT_NAMES: Partial<Record<WorkoutType, string>> = {
+  'running': 'Footing',
+  'indoor-bike': 'Bike',
+};
+
 export function hasDistance(type: WorkoutType): boolean {
   return type === 'running' || type === 'indoor-bike';
 }
@@ -36,12 +41,21 @@ export interface Workout {
   completed: boolean;
   day: number; // 0=Monday, 6=Sunday
   distance?: number; // km, for running and indoor-bike
+  actualDistance?: number; // km actually done (may differ from planned)
   goals?: string[]; // target exercises, for strength and street-workout
+}
+
+export type DistanceType = Extract<WorkoutType, 'running' | 'indoor-bike'>;
+
+export interface WeekTargets {
+  running?: number;
+  'indoor-bike'?: number;
 }
 
 export interface WeekData {
   weekId: string; // format: "2024-W01"
   workouts: Workout[];
+  targets?: WeekTargets;
 }
 
 export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;

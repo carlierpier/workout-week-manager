@@ -20,12 +20,16 @@ export function ProgressReport({ visible, week, weekId, onClose }: ProgressRepor
 
   const distanceByType = (['running', 'indoor-bike'] as const).map(type => {
     const typeWorkouts = week.workouts.filter(w => w.type === type && hasDistance(w.type));
-    const totalKm = typeWorkouts.reduce((sum, w) => sum + (w.distance ?? 0), 0);
+    const totalKm = typeWorkouts.reduce((sum, w) => sum + (w.actualDistance ?? w.distance ?? 0), 0);
     const completedKm = typeWorkouts
       .filter(w => w.completed)
       .reduce((sum, w) => sum + (w.distance ?? 0), 0);
-    return { type, totalKm, completedKm, count: typeWorkouts.length };
-  }).filter(d => d.count > 0);
+    const actualKm = typeWorkouts
+      .filter(w => w.completed)
+      .reduce((sum, w) => sum + (w.actualDistance ?? w.distance ?? 0), 0);
+    const target = week.targets?.[type];
+    return { type, totalKm, completedKm, actualKm, target, count: typeWorkouts.length };
+  }).filter(d => d.count > 0 || d.target != null);
 
   const byDay = DAY_NAMES_FULL.map((name, i) => {
     const dayWorkouts = week.workouts.filter(w => w.day === i);
@@ -95,7 +99,12 @@ export function ProgressReport({ visible, week, weekId, onClose }: ProgressRepor
                       {distanceByType.map(d => (
                         <View key={d.type} style={[styles.distanceCard, { borderLeftColor: WORKOUT_TYPE_COLORS[d.type] }]}>
                           <Text style={styles.distanceType}>{WORKOUT_TYPE_LABELS[d.type]}</Text>
-                          <Text style={styles.distanceValue}>{d.completedKm.toFixed(1)} / {d.totalKm.toFixed(1)} km</Text>
+                          <Text style={styles.distanceValue}>
+                            {d.actualKm.toFixed(1)} / {d.totalKm.toFixed(1)} km
+                          </Text>
+                          {d.target != null && d.target > 0 && (
+                            <Text style={styles.distanceTarget}>Target: {d.target} km</Text>
+                          )}
                         </View>
                       ))}
                     </View>
@@ -229,6 +238,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: colors.text,
+  },
+  distanceTarget: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '500',
   },
   daysSection: {
     marginBottom: 20,

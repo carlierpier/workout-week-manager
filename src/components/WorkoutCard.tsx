@@ -37,7 +37,11 @@ export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: Wor
       </View>
 
       {hasDistance(workout.type) && workout.distance != null && workout.distance > 0 && (
-        <Text style={styles.meta}>{workout.distance} km</Text>
+        <Text style={styles.meta}>
+          {workout.actualDistance != null && workout.actualDistance > 0
+            ? `${workout.actualDistance} / ${workout.distance} km`
+            : `${workout.distance} km`}
+        </Text>
       )}
 
       {hasGoals(workout.type) && workout.goals && workout.goals.length > 0 && (

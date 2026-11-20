@@ -1,10 +1,32 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadWeek, saveWeek } from './storage';
-import type { WeekData, Workout, WorkoutType } from './types';
+import type { DistanceType, WeekData, Workout, WorkoutType } from './types';
+import { hasDistance } from './types';
 import { getISOWeekId, offsetWeek } from './weekUtils';
 
 function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 11);
+}
+
+function redistributeDistances(workouts: Workout[], type: WorkoutType, target: number, excludeId?: string): Workout[] {
+  const fixedKm = workouts
+    .filter(w => w.type === type && (w.completed || w.id === excludeId))
+    .reduce((sum, w) => sum + (w.distance ?? 0), 0);
+  const adjustable = workouts.filter(w => w.type === type && !w.completed && w.id !== excludeId && (w.distance ?? 0) > 0);
+  const adjustableKm = adjustable.reduce((sum, w) => sum + (w.distance ?? 0), 0);
+  const totalKm = fixedKm + adjustableKm;
+
+  if (totalKm < target || adjustableKm === 0) return workouts;
+
+  const remainingBudget = Math.max(0, target - fixedKm);
+  const ratio = remainingBudget / adjustableKm;
+  const adjustableIds = new Set(adjustable.map(w => w.id));
+
+  return workouts.map(w =>
+    adjustableIds.has(w.id)
+      ? { ...w, distance: Math.round((w.distance ?? 0) * ratio) }
+      : w
+  );
 }
 
 export function useWeek() {
@@ -34,17 +56,22 @@ export function useWeek() {
     setWeekId(getISOWeekId(new Date()));
   }, []);
 
-  const addWorkout = useCallback((day: number, name: string, type: WorkoutType, distance?: number, goals?: string[]) => {
-    const workout: Workout = { id: uid(), name, type, completed: false, day, distance, goals };
-    const updated = { ...week, workouts: [...week.workouts, workout] };
-    persist(updated);
+  const addWorkout = useCallback((day: number, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => {
+    const id = uid();
+    const workout: Workout = { id, name, type, completed: false, day, distance, actualDistance, goals };
+    let workouts = [...week.workouts, workout];
+    const target = hasDistance(type) ? week.targets?.[type as DistanceType] : undefined;
+    if (target && target > 0) {
+      workouts = redistributeDistances(workouts, type, target, id);
+    }
+    persist({ ...week, workouts });
   }, [week, persist]);
 
-  const updateWorkout = useCallback((workoutId: string, name: string, type: WorkoutType, distance?: number, goals?: string[]) => {
+  const updateWorkout = useCallback((workoutId: string, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => {
     const updated = {
       ...week,
       workouts: week.workouts.map(w =>
-        w.id === workoutId ? { ...w, name, type, distance, goals } : w
+        w.id === workoutId ? { ...w, name, type, distance, actualDistance, goals } : w
       ),
     };
     persist(updated);
@@ -68,6 +95,11 @@ export function useWeek() {
     persist(updated);
   }, [week, persist]);
 
+  const setTarget = useCallback((type: DistanceType, km: number | undefined) => {
+    const targets = { ...week.targets, [type]: km };
+    persist({ ...week, targets });
+  }, [week, persist]);
+
   const copyToNextWeek = useCallback(async () => {
     const nextId = offsetWeek(weekId, 1);
     const nextWeek = await loadWeek(nextId);
@@ -75,10 +107,12 @@ export function useWeek() {
       ...w,
       id: uid(),
       completed: false,
+      actualDistance: undefined,
     }));
     const updated: WeekData = {
       weekId: nextId,
       workouts: [...nextWeek.workouts, ...copiedWorkouts],
+      targets: nextWeek.targets ?? week.targets,
     };
     await saveWeek(updated);
     setWeekId(nextId);
@@ -95,6 +129,7 @@ export function useWeek() {
     updateWorkout,
     deleteWorkout,
     toggleComplete,
+    setTarget,
     copyToNextWeek,
   };
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,8 @@ import { ListView } from './src/components/ListView';
 import { WorkoutModal } from './src/components/WorkoutModal';
 import { ProgressReport } from './src/components/ProgressReport';
 import { useResponsive } from './src/hooks/useResponsive';
-import type { WorkoutType } from './src/types';
-import { DAY_NAMES_FULL } from './src/types';
+import type { DistanceType, WorkoutType } from './src/types';
+import { DAY_NAMES_FULL, WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS } from './src/types';
 import { useWeek } from './src/useWeek';
 import { formatWeekRange, isCurrentWeek } from './src/weekUtils';
 import { colors } from './src/theme';
@@ -25,15 +25,187 @@ type ModalState =
       editName?: string;
       editType?: WorkoutType;
       editDistance?: number;
+      editActualDistance?: number;
       editGoals?: string[];
     };
+
+function TargetRow({ type, target, totalKm, onSetTarget }: {
+  type: DistanceType;
+  target: number | undefined;
+  totalKm: number;
+  onSetTarget: (type: DistanceType, km: number | undefined) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(target != null ? String(target) : '');
+  const color = WORKOUT_TYPE_COLORS[type];
+  const label = WORKOUT_TYPE_LABELS[type];
+  const pct = target && target > 0 ? Math.min(100, Math.round((totalKm / target) * 100)) : 0;
+  const over = target != null && target > 0 && totalKm > target;
+
+  const handleSave = () => {
+    const parsed = parseFloat(value);
+    onSetTarget(type, parsed > 0 ? parsed : undefined);
+    setEditing(false);
+  };
+
+  return (
+    <View style={targetStyles.row}>
+      <View style={[targetStyles.dot, { backgroundColor: color }]} />
+      <Text style={targetStyles.label}>{label}</Text>
+      {editing ? (
+        <View style={targetStyles.editRow}>
+          <TextInput
+            style={targetStyles.input}
+            value={value}
+            onChangeText={setValue}
+            keyboardType="decimal-pad"
+            placeholder="km"
+            placeholderTextColor={colors.textMuted}
+            autoFocus
+            onSubmitEditing={handleSave}
+          />
+          <TouchableOpacity onPress={handleSave} style={targetStyles.saveBtn}>
+            <Ionicons name="checkmark" size={16} color={colors.success} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={() => { setValue(target != null ? String(target) : ''); setEditing(true); }} style={targetStyles.targetBtn}>
+          <Text style={targetStyles.targetText}>
+            {target != null ? `${target} km` : 'Set target'}
+          </Text>
+          <Ionicons name="pencil" size={12} color={colors.textMuted} />
+        </TouchableOpacity>
+      )}
+      {target != null && target > 0 && (
+        <View style={targetStyles.progressArea}>
+          <View style={targetStyles.barBg}>
+            <View style={[targetStyles.bar, { width: `${pct}%`, backgroundColor: over ? colors.danger : color }]} />
+          </View>
+          <Text style={[targetStyles.km, over && { color: colors.danger }]}>
+            {totalKm.toFixed(1)}/{target} km
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function WeeklyTargetsBar({ workouts, targets, onSetTarget }: {
+  workouts: import('./src/types').Workout[];
+  targets: import('./src/types').WeekTargets | undefined;
+  onSetTarget: (type: DistanceType, km: number | undefined) => void;
+}) {
+  const types: DistanceType[] = ['running', 'indoor-bike'];
+  const totals = Object.fromEntries(types.map(t => [
+    t,
+    workouts.filter(w => w.type === t).reduce((sum, w) => sum + (w.actualDistance ?? w.distance ?? 0), 0),
+  ])) as Record<DistanceType, number>;
+
+  return (
+    <View style={targetStyles.container}>
+      {types.map(t => (
+        <TargetRow
+          key={t}
+          type={t}
+          target={targets?.[t]}
+          totalKm={totals[t]}
+          onSetTarget={onSetTarget}
+        />
+      ))}
+    </View>
+  );
+}
+
+const targetStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface2,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    width: 85,
+  },
+  targetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.surface2,
+  },
+  targetText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '500',
+  },
+  editRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  input: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.surface2,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: colors.text,
+    fontSize: 13,
+    width: 60,
+  },
+  saveBtn: {
+    padding: 4,
+  },
+  progressArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  barBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: colors.surface2,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  bar: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  km: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '500',
+    minWidth: 70,
+    textAlign: 'right',
+  },
+});
 
 export default function App() {
   const {
     weekId, week, loading,
     navigateWeek, goToCurrentWeek,
     addWorkout, updateWorkout, deleteWorkout,
-    toggleComplete, copyToNextWeek,
+    toggleComplete, setTarget, copyToNextWeek,
   } = useWeek();
 
   const { isWide } = useResponsive();
@@ -55,15 +227,16 @@ export default function App() {
       editName: w.name,
       editType: w.type,
       editDistance: w.distance,
+      editActualDistance: w.actualDistance,
       editGoals: w.goals,
     });
   };
 
-  const handleSave = (name: string, type: WorkoutType, distance?: number, goals?: string[]) => {
+  const handleSave = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => {
     if (modal.open && modal.editId) {
-      updateWorkout(modal.editId, name, type, distance, goals);
+      updateWorkout(modal.editId, name, type, distance, goals, actualDistance);
     } else if (modal.open) {
-      addWorkout(modal.day, name, type, distance, goals);
+      addWorkout(modal.day, name, type, distance, goals, actualDistance);
     }
     setModal({ open: false });
   };
@@ -123,6 +296,12 @@ export default function App() {
           </View>
         </View>
 
+        <WeeklyTargetsBar
+          workouts={week.workouts}
+          targets={week.targets}
+          onSetTarget={setTarget}
+        />
+
         {loading ? (
           <View style={styles.loading}>
             <ActivityIndicator color={colors.accent} size="large" />
@@ -152,6 +331,7 @@ export default function App() {
             initialName={modal.editName}
             initialType={modal.editType}
             initialDistance={modal.editDistance}
+            initialActualDistance={modal.editActualDistance}
             initialGoals={modal.editGoals}
             onSave={handleSave}
             onClose={() => setModal({ open: false })}
