@@ -23,16 +23,20 @@ interface WorkoutModalProps {
   initialDistance?: number;
   initialActualDistance?: number;
   initialGoals?: string[];
-  onSave: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => void;
+  initialCompleted?: boolean;
+  initialUnplanned?: boolean;
+  onSave: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => void;
+  onSaveAndComplete: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => void;
   onClose: () => void;
 }
 
-export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialActualDistance, initialGoals, onSave, onClose }: WorkoutModalProps) {
+export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialActualDistance, initialGoals, initialCompleted, initialUnplanned, onSave, onSaveAndComplete, onClose }: WorkoutModalProps) {
   const [name, setName] = useState(initialName ?? '');
   const [type, setType] = useState<WorkoutType>(initialType ?? 'strength');
   const [distance, setDistance] = useState(initialDistance != null ? String(initialDistance) : '');
   const [actualDistance, setActualDistance] = useState(initialActualDistance != null ? String(initialActualDistance) : '');
   const [goals, setGoals] = useState<string[]>(initialGoals ?? ['']);
+  const [unplanned, setUnplanned] = useState(initialUnplanned ?? false);
   const isEditing = initialName != null;
   const defaultName = WORKOUT_TYPE_DEFAULT_NAMES[type];
 
@@ -44,14 +48,25 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
     setGoals(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const buildPayload = () => {
     const finalName = name.trim() || defaultName;
-    if (!finalName) return;
+    if (!finalName) return null;
     const dist = hasDistance(type) && distance ? parseFloat(distance) : undefined;
     const actDist = hasDistance(type) && actualDistance ? parseFloat(actualDistance) : undefined;
     const parsedGoals = hasGoals(type) ? goals.filter(g => g.trim()).map(g => g.trim()) : undefined;
-    onSave(finalName, type, dist, parsedGoals, actDist);
+    return { finalName, dist, parsedGoals, actDist } as const;
   };
+
+  const handleSubmit = () => {
+    const p = buildPayload();
+    if (p) onSave(p.finalName, type, p.dist, p.parsedGoals, p.actDist, unplanned || undefined);
+  };
+
+  const handleSubmitAndComplete = () => {
+    const p = buildPayload();
+    if (p) onSaveAndComplete(p.finalName, type, p.dist, p.parsedGoals, p.actDist, unplanned || undefined);
+  };
+
   const canSave = !!(name.trim() || defaultName);
 
   return (
@@ -86,6 +101,16 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
                 </TouchableOpacity>
               ))}
             </View>
+
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setUnplanned(v => !v)}
+            >
+              <View style={[styles.checkbox, unplanned && styles.checkboxChecked]}>
+                {unplanned && <Ionicons name="checkmark" size={14} color="#fff" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Unplanned workout</Text>
+            </TouchableOpacity>
 
             <Text style={styles.label}>Workout name</Text>
             <TextInput
@@ -158,12 +183,22 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
+            {!initialCompleted && (
+              <TouchableOpacity
+                style={[styles.completeBtn, !canSave && styles.saveBtnDisabled]}
+                onPress={handleSubmitAndComplete}
+                disabled={!canSave}
+              >
+                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                <Text style={styles.completeBtnText}>{isEditing ? 'Save & complete' : 'Add & complete'}</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
               onPress={handleSubmit}
               disabled={!canSave}
             >
-              <Text style={styles.saveText}>{initialName ? 'Save changes' : 'Add workout'}</Text>
+              <Text style={styles.saveText}>{isEditing ? 'Save changes' : 'Add workout'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -227,6 +262,31 @@ const styles = StyleSheet.create({
   typeChipActive: {
     color: '#fff',
   },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
   input: {
     backgroundColor: colors.bg,
     borderWidth: 1,
@@ -289,6 +349,21 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontWeight: '600',
     fontSize: 15,
+  },
+  completeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.success,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  completeBtnText: {
+    color: colors.success,
+    fontWeight: '600',
+    fontSize: 14,
   },
   saveBtn: {
     paddingHorizontal: 16,

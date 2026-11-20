@@ -15,13 +15,19 @@ export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: Wor
   const typeColor = WORKOUT_TYPE_COLORS[workout.type];
 
   return (
-    <View style={[styles.card, { borderLeftColor: typeColor }, workout.completed && styles.completed]}>
+    <View style={[styles.card, { borderLeftColor: typeColor }, workout.unplanned && styles.unplanned, workout.completed && styles.completed]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onToggleComplete} style={[styles.checkBtn, workout.completed && styles.checked]}>
           {workout.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
         </TouchableOpacity>
 
         <Text style={styles.name} numberOfLines={1}>{workout.name}</Text>
+
+        {workout.unplanned && (
+          <View style={styles.unplannedBadge}>
+            <Text style={styles.unplannedText}>Unplanned</Text>
+          </View>
+        )}
 
         <View style={[styles.badge, { backgroundColor: typeColor }]}>
           <Text style={styles.badgeText}>{WORKOUT_TYPE_LABELS[workout.type]}</Text>
@@ -36,13 +42,15 @@ export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: Wor
         </TouchableOpacity>
       </View>
 
-      {hasDistance(workout.type) && workout.distance != null && workout.distance > 0 && (
+      {hasDistance(workout.type) && (workout.distance != null && workout.distance > 0 ? (
         <Text style={styles.meta}>
           {workout.actualDistance != null && workout.actualDistance > 0
             ? `${workout.actualDistance} / ${workout.distance} km`
             : `${workout.distance} km`}
         </Text>
-      )}
+      ) : workout.actualDistance != null && workout.actualDistance > 0 ? (
+        <Text style={styles.meta}>{workout.actualDistance} km</Text>
+      ) : null)}
 
       {hasGoals(workout.type) && workout.goals && workout.goals.length > 0 && (
         <View style={styles.goals}>
@@ -67,6 +75,26 @@ const styles = StyleSheet.create({
   },
   completed: {
     opacity: 0.6,
+  },
+  unplanned: {
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: colors.surface2,
+    borderLeftWidth: 3,
+  },
+  unplannedBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.surface2,
+  },
+  unplannedText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.3,
   },
   header: {
     flexDirection: 'row',

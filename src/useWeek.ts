@@ -56,9 +56,9 @@ export function useWeek() {
     setWeekId(getISOWeekId(new Date()));
   }, []);
 
-  const addWorkout = useCallback((day: number, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => {
+  const addWorkout = useCallback((day: number, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, completed = false, unplanned?: boolean) => {
     const id = uid();
-    const workout: Workout = { id, name, type, completed: false, day, distance, actualDistance, goals };
+    const workout: Workout = { id, name, type, completed, unplanned, day, distance, actualDistance, goals };
     let workouts = [...week.workouts, workout];
     const target = hasDistance(type) ? week.targets?.[type as DistanceType] : undefined;
     if (target && target > 0) {
@@ -67,11 +67,11 @@ export function useWeek() {
     persist({ ...week, workouts });
   }, [week, persist]);
 
-  const updateWorkout = useCallback((workoutId: string, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => {
+  const updateWorkout = useCallback((workoutId: string, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => {
     const updated = {
       ...week,
       workouts: week.workouts.map(w =>
-        w.id === workoutId ? { ...w, name, type, distance, actualDistance, goals } : w
+        w.id === workoutId ? { ...w, name, type, distance, actualDistance, goals, unplanned } : w
       ),
     };
     persist(updated);

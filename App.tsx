@@ -27,6 +27,8 @@ type ModalState =
       editDistance?: number;
       editActualDistance?: number;
       editGoals?: string[];
+      editCompleted?: boolean;
+      editUnplanned?: boolean;
     };
 
 function TargetRow({ type, target, totalKm, onSetTarget }: {
@@ -41,6 +43,7 @@ function TargetRow({ type, target, totalKm, onSetTarget }: {
   const label = WORKOUT_TYPE_LABELS[type];
   const pct = target && target > 0 ? Math.min(100, Math.round((totalKm / target) * 100)) : 0;
   const over = target != null && target > 0 && totalKm > target;
+  const reached = target != null && target > 0 && totalKm == target;
 
   const handleSave = () => {
     const parsed = parseFloat(value);
@@ -79,9 +82,9 @@ function TargetRow({ type, target, totalKm, onSetTarget }: {
       {target != null && target > 0 && (
         <View style={targetStyles.progressArea}>
           <View style={targetStyles.barBg}>
-            <View style={[targetStyles.bar, { width: `${pct}%`, backgroundColor: over ? colors.danger : color }]} />
+            <View style={[targetStyles.bar, { width: `${pct}%`, backgroundColor: over ? colors.danger : reached ? colors.success : color }]} />
           </View>
-          <Text style={[targetStyles.km, over && { color: colors.danger }]}>
+          <Text style={[targetStyles.km, over && { color: colors.danger }, reached && { color: colors.success }]}>
             {totalKm.toFixed(1)}/{target} km
           </Text>
         </View>
@@ -229,14 +232,26 @@ export default function App() {
       editDistance: w.distance,
       editActualDistance: w.actualDistance,
       editGoals: w.goals,
+      editCompleted: w.completed,
+      editUnplanned: w.unplanned,
     });
   };
 
-  const handleSave = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number) => {
+  const handleSave = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => {
     if (modal.open && modal.editId) {
-      updateWorkout(modal.editId, name, type, distance, goals, actualDistance);
+      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned);
     } else if (modal.open) {
-      addWorkout(modal.day, name, type, distance, goals, actualDistance);
+      addWorkout(modal.day, name, type, distance, goals, actualDistance, false, unplanned);
+    }
+    setModal({ open: false });
+  };
+
+  const handleSaveAndComplete = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => {
+    if (modal.open && modal.editId) {
+      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned);
+      toggleComplete(modal.editId);
+    } else if (modal.open) {
+      addWorkout(modal.day, name, type, distance, goals, actualDistance, true, unplanned);
     }
     setModal({ open: false });
   };
@@ -333,7 +348,10 @@ export default function App() {
             initialDistance={modal.editDistance}
             initialActualDistance={modal.editActualDistance}
             initialGoals={modal.editGoals}
+            initialCompleted={modal.editCompleted}
+            initialUnplanned={modal.editUnplanned}
             onSave={handleSave}
+            onSaveAndComplete={handleSaveAndComplete}
             onClose={() => setModal({ open: false })}
           />
         )}
