@@ -70,7 +70,7 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
   const canSave = !!(name.trim() || defaultName);
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent nativeID="workout-modal">
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
+    flexShrink: 1,
   },
   header: {
     flexDirection: 'row',
@@ -234,6 +235,8 @@ const styles = StyleSheet.create({
   },
   body: {
     padding: 20,
+    flexShrink: 1,
+    minHeight: 0,
   },
   label: {
     fontSize: 13,

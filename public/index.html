@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>%WEB_TITLE%</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+        overscroll-behavior: none;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+        touch-action: pan-x pan-y;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+
+      #workout-modal {
+        top: var(--modal-top, 0px) !important;
+        height: var(--modal-height, 100dvh) !important;
+        bottom: auto !important;
+      }
+    </style>
+    <script>
+      (() => {
+        const viewport = window.visualViewport;
+        const updateModalViewport = () => {
+          document.documentElement.style.setProperty(
+            '--modal-height',
+            `${viewport?.height ?? window.innerHeight}px`,
+          );
+          document.documentElement.style.setProperty(
+            '--modal-top',
+            `${viewport?.offsetTop ?? 0}px`,
+          );
+        };
+
+        updateModalViewport();
+        viewport?.addEventListener('resize', updateModalViewport);
+        viewport?.addEventListener('scroll', updateModalViewport);
+        window.addEventListener('resize', updateModalViewport);
+        window.addEventListener('orientationchange', updateModalViewport);
+      })();
+    </script>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>
