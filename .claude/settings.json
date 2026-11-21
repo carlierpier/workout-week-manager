@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm ls *)",
+      "Bash(jobs -l)",
+      "Bash(awk '{print $1}')",
+      "Bash(kill %1)",
+      "Bash(npm install *)",
+      "Bash(cd \"/home/a752661/Workspace - linux/workout-week-manager\" && rm -rf src/ dist/ vite.config.ts tsconfig.app.json tsconfig.node.json index.html init_prompt.md *.profraw)",
+      "Bash(cd \"/home/a752661/Workspace - linux/workout-week-manager\" && rm -rf public/ node_modules/ package-lock.json tsconfig.json *.profraw)",
+      "Bash(cd \"/home/a752661/Workspace - linux/workout-week-manager\" && rm -f *.profraw)",
+      "Bash(pkill -f \"expo start\")"
+    ],
+    "additionalDirectories": [
+      "/home/a752661/Workspace - linux/workout-week-manager/mobile",
+      "/home/a752661/Workspace - linux/workout-week-manager"
+    ]
+  }
+}
