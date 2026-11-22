@@ -25,27 +25,25 @@ interface WorkoutModalProps {
   initialGoals?: string[];
   initialCompleted?: boolean;
   initialUnplanned?: boolean;
+  goalTags: string[];
   onSave: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => void;
   onSaveAndComplete: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => void;
   onClose: () => void;
 }
 
-export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialActualDistance, initialGoals, initialCompleted, initialUnplanned, onSave, onSaveAndComplete, onClose }: WorkoutModalProps) {
+export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialActualDistance, initialGoals, initialCompleted, initialUnplanned, goalTags, onSave, onSaveAndComplete, onClose }: WorkoutModalProps) {
   const [name, setName] = useState(initialName ?? '');
   const [type, setType] = useState<WorkoutType>(initialType ?? 'strength');
   const [distance, setDistance] = useState(initialDistance != null ? String(initialDistance) : '');
   const [actualDistance, setActualDistance] = useState(initialActualDistance != null ? String(initialActualDistance) : '');
-  const [goals, setGoals] = useState<string[]>(initialGoals ?? ['']);
+  const [goals, setGoals] = useState<string[]>(initialGoals ?? []);
   const [unplanned, setUnplanned] = useState(initialUnplanned ?? false);
   const isEditing = initialName != null;
   const defaultName = WORKOUT_TYPE_DEFAULT_NAMES[type];
+  const availableGoalTags = [...new Set([...goalTags, ...goals])];
 
-  const updateGoal = (index: number, value: string) => {
-    setGoals(prev => prev.map((g, i) => i === index ? value : g));
-  };
-
-  const removeGoal = (index: number) => {
-    setGoals(prev => prev.filter((_, i) => i !== index));
+  const toggleGoal = (goal: string) => {
+    setGoals(prev => prev.includes(goal) ? prev.filter(item => item !== goal) : [...prev, goal]);
   };
 
   const buildPayload = () => {
@@ -53,7 +51,7 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
     if (!finalName) return null;
     const dist = hasDistance(type) && distance ? parseFloat(distance) : undefined;
     const actDist = hasDistance(type) && actualDistance ? parseFloat(actualDistance) : undefined;
-    const parsedGoals = hasGoals(type) ? goals.filter(g => g.trim()).map(g => g.trim()) : undefined;
+    const parsedGoals = hasGoals(type) ? goals : undefined;
     return { finalName, dist, parsedGoals, actDist } as const;
   };
 
@@ -151,30 +149,26 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
 
             {hasGoals(type) && (
               <View style={styles.goalsSection}>
-                <Text style={styles.goalsTitle}>Goals</Text>
-                {goals.map((goal, i) => (
-                  <View key={i} style={styles.goalRow}>
-                    <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      value={goal}
-                      onChangeText={v => updateGoal(i, v)}
-                      placeholder="e.g. Pull-up, Dips..."
-                      placeholderTextColor={colors.textMuted}
-                    />
-                    {goals.length > 1 && (
-                      <TouchableOpacity onPress={() => removeGoal(i)} style={styles.removeGoalBtn}>
-                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                <Text style={styles.goalsTitle}>Goal tags</Text>
+                {availableGoalTags.length > 0 ? (
+                  <View style={styles.goalTags}>
+                    {availableGoalTags.map(goal => (
+                      <TouchableOpacity
+                        key={goal}
+                        style={[styles.goalChip, goals.includes(goal) && styles.goalChipSelected]}
+                        onPress={() => toggleGoal(goal)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: goals.includes(goal) }}
+                      >
+                        <Text style={[styles.goalChipText, goals.includes(goal) && styles.goalChipTextSelected]}>
+                          {goal}
+                        </Text>
                       </TouchableOpacity>
-                    )}
+                    ))}
                   </View>
-                ))}
-                <TouchableOpacity
-                  style={styles.addGoalBtn}
-                  onPress={() => setGoals(prev => [...prev, ''])}
-                >
-                  <Ionicons name="add" size={16} color={colors.textMuted} />
-                  <Text style={styles.addGoalText}>Add goal</Text>
-                </TouchableOpacity>
+                ) : (
+                  <Text style={styles.noGoalTags}>Configure reusable tags in Settings.</Text>
+                )}
               </View>
             )}
           </ScrollView>
@@ -308,29 +302,32 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: 12,
   },
-  goalRow: {
+  goalTags: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 8,
   },
-  removeGoalBtn: {
-    padding: 8,
-  },
-  addGoalBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
+  goalChip: {
     borderWidth: 1,
     borderColor: colors.surface2,
-    borderRadius: radius.sm,
-    marginTop: 4,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
-  addGoalText: {
-    fontSize: 14,
+  goalChipSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+  },
+  goalChipText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: colors.textMuted,
+  },
+  goalChipTextSelected: {
+    color: '#fff',
+  },
+  noGoalTags: {
+    fontSize: 13,
     color: colors.textMuted,
   },
   footer: {

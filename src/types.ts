@@ -46,11 +46,23 @@ export interface Workout {
   goals?: string[]; // target exercises, for strength and street-workout
 }
 
+export function countGoalOccurrences(workouts: Workout[], goalName: string): number {
+  const normalizedName = goalName.trim().toLowerCase();
+  return workouts.reduce((count, workout) =>
+    count + (hasGoals(workout.type) ? (workout.goals ?? []).filter(goal => goal.trim().toLowerCase() === normalizedName).length : 0)
+  , 0);
+}
+
 export type DistanceType = Extract<WorkoutType, 'running' | 'indoor-bike'>;
 
 export interface WeekTargets {
   running?: number;
   'indoor-bike'?: number;
+}
+
+export interface GoalTarget {
+  name: string;
+  target: number;
 }
 
 export interface WeekData {

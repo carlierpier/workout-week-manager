@@ -1,7 +1,7 @@
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { WeekData } from '../types';
-import { DAY_NAMES_FULL, WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS, hasDistance } from '../types';
+import type { GoalTarget, WeekData } from '../types';
+import { countGoalOccurrences, DAY_NAMES_FULL, WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS, hasDistance } from '../types';
 import { formatWeekRange } from '../weekUtils';
 import { colors, radius } from '../theme';
 import Svg, { Circle } from 'react-native-svg';
@@ -10,10 +10,11 @@ interface ProgressReportProps {
   visible: boolean;
   week: WeekData;
   weekId: string;
+  goalTargets: GoalTarget[];
   onClose: () => void;
 }
 
-export function ProgressReport({ visible, week, weekId, onClose }: ProgressReportProps) {
+export function ProgressReport({ visible, week, weekId, goalTargets, onClose }: ProgressReportProps) {
   const total = week.workouts.length;
   const completed = week.workouts.filter(w => w.completed).length;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -126,6 +127,24 @@ export function ProgressReport({ visible, week, weekId, onClose }: ProgressRepor
                   ))}
                 </View>
               </>
+            )}
+
+            {goalTargets.length > 0 && (
+              <View style={styles.goalsSection}>
+                <Text style={styles.sectionTitle}>Weekly goal targets</Text>
+                {goalTargets.map(goal => {
+                  const count = countGoalOccurrences(week.workouts, goal.name);
+                  const reached = count >= goal.target;
+                  return (
+                    <View key={goal.name} style={styles.goalRow}>
+                      <Text style={styles.goalName}>{goal.name}</Text>
+                      <Text style={[styles.goalProgress, reached && styles.goalReached]}>
+                        {count}/{goal.target}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
             )}
           </ScrollView>
         </View>
@@ -246,6 +265,32 @@ const styles = StyleSheet.create({
   },
   daysSection: {
     marginBottom: 20,
+  },
+  goalsSection: {
+    marginBottom: 20,
+  },
+  goalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.bg,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 6,
+  },
+  goalName: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+  },
+  goalProgress: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  goalReached: {
+    color: colors.success,
   },
   dayRow: {
     flexDirection: 'row',

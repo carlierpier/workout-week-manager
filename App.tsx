@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, type ViewInstance } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -7,12 +7,14 @@ import { CalendarView } from './src/components/CalendarView';
 import { ListView } from './src/components/ListView';
 import { WorkoutModal } from './src/components/WorkoutModal';
 import { ProgressReport } from './src/components/ProgressReport';
+import { GoalSettingsModal } from './src/components/GoalSettingsModal';
 import { useResponsive } from './src/hooks/useResponsive';
-import type { DistanceType, WorkoutType } from './src/types';
-import { DAY_NAMES_FULL, WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS } from './src/types';
+import type { DistanceType, GoalTarget, WorkoutType } from './src/types';
+import { countGoalOccurrences, DAY_NAMES_FULL, WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS } from './src/types';
 import { useWeek } from './src/useWeek';
 import { formatWeekRange, isCurrentWeek } from './src/weekUtils';
 import { colors } from './src/theme';
+import { loadGoalTargets, saveGoalTargets } from './src/storage';
 
 type ViewMode = 'calendar' | 'list';
 
@@ -93,9 +95,10 @@ function TargetRow({ type, target, totalKm, onSetTarget }: {
   );
 }
 
-function WeeklyTargetsBar({ workouts, targets, onSetTarget }: {
+function WeeklyTargetsBar({ workouts, targets, goalTargets, onSetTarget }: {
   workouts: import('./src/types').Workout[];
   targets: import('./src/types').WeekTargets | undefined;
+  goalTargets: GoalTarget[];
   onSetTarget: (type: DistanceType, km: number | undefined) => void;
 }) {
   const types: DistanceType[] = ['running', 'indoor-bike'];
@@ -115,6 +118,25 @@ function WeeklyTargetsBar({ workouts, targets, onSetTarget }: {
           onSetTarget={onSetTarget}
         />
       ))}
+      {goalTargets.map(goal => {
+        const count = countGoalOccurrences(workouts, goal.name);
+        const pct = Math.min(100, Math.round((count / goal.target) * 100));
+        const reached = count >= goal.target;
+        return (
+          <View key={goal.name} style={targetStyles.row}>
+            <View style={[targetStyles.dot, { backgroundColor: WORKOUT_TYPE_COLORS.strength }]} />
+            <Text style={targetStyles.goalLabel} numberOfLines={1}>{goal.name}</Text>
+            <View style={targetStyles.progressArea}>
+              <View style={targetStyles.barBg}>
+                <View style={[targetStyles.bar, { width: `${pct}%`, backgroundColor: reached ? colors.success : WORKOUT_TYPE_COLORS.strength }]} />
+              </View>
+              <Text style={[targetStyles.goalCount, reached && { color: colors.success }]}>
+                {count}/{goal.target}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -138,6 +160,12 @@ const targetStyles = StyleSheet.create({
     borderRadius: 4,
   },
   label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    width: 85,
+  },
+  goalLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.text,
@@ -201,6 +229,13 @@ const targetStyles = StyleSheet.create({
     minWidth: 70,
     textAlign: 'right',
   },
+  goalCount: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '500',
+    minWidth: 42,
+    textAlign: 'right',
+  },
 });
 
 export default function App() {
@@ -215,10 +250,18 @@ export default function App() {
   const [view, setView] = useState<ViewMode>('calendar');
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [showReport, setShowReport] = useState(false);
+  const [showGoalSettings, setShowGoalSettings] = useState(false);
+  const [goalTargets, setGoalTargets] = useState<GoalTarget[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [activeDropDay, setActiveDropDay] = useState<number>();
   const dropTargets = useRef(new Map<number, ViewInstance>());
   const hoverCheckId = useRef(0);
+
+  useEffect(() => {
+    loadGoalTargets()
+      .then(setGoalTargets)
+      .catch(error => console.error('Failed to load goal settings:', error));
+  }, []);
 
   const registerDropTarget = (day: number, target: ViewInstance | null) => {
     if (target) {
@@ -302,6 +345,15 @@ export default function App() {
     setModal({ open: false });
   };
 
+  const handleSaveGoalTargets = (nextGoalTargets: GoalTarget[]) => {
+    saveGoalTargets(nextGoalTargets)
+      .then(() => {
+        setGoalTargets(nextGoalTargets);
+        setShowGoalSettings(false);
+      })
+      .catch(error => console.error('Failed to save goal settings:', error));
+  };
+
   const current = isCurrentWeek(weekId);
 
   return (
@@ -350,6 +402,13 @@ export default function App() {
             <TouchableOpacity style={styles.ghostBtn} onPress={() => setShowReport(true)}>
               <Ionicons name="stats-chart" size={16} color={colors.textMuted} />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.ghostBtn}
+              onPress={() => setShowGoalSettings(true)}
+              accessibilityLabel="Configure goal tags and weekly targets"
+            >
+              <Ionicons name="settings-outline" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.primaryBtn} onPress={copyToNextWeek}>
               <Ionicons name="copy-outline" size={14} color="#fff" />
               <Text style={styles.primaryBtnText}>Copy week</Text>
@@ -360,6 +419,7 @@ export default function App() {
         <WeeklyTargetsBar
           workouts={week.workouts}
           targets={week.targets}
+          goalTargets={goalTargets}
           onSetTarget={setTarget}
         />
 
@@ -406,6 +466,7 @@ export default function App() {
             initialDistance={modal.editDistance}
             initialActualDistance={modal.editActualDistance}
             initialGoals={modal.editGoals}
+            goalTags={goalTargets.map(goal => goal.name)}
             initialCompleted={modal.editCompleted}
             initialUnplanned={modal.editUnplanned}
             onSave={handleSave}
@@ -418,7 +479,15 @@ export default function App() {
           visible={showReport}
           week={week}
           weekId={weekId}
+          goalTargets={goalTargets}
           onClose={() => setShowReport(false)}
+        />
+
+        <GoalSettingsModal
+          visible={showGoalSettings}
+          goalTargets={goalTargets}
+          onSave={handleSaveGoalTargets}
+          onClose={() => setShowGoalSettings(false)}
         />
       </SafeAreaView>
     </SafeAreaProvider>
