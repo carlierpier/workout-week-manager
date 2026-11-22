@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Workout } from '../types';
 import { WORKOUT_TYPE_COLORS, WORKOUT_TYPE_LABELS, hasDistance, hasGoals } from '../types';
@@ -9,14 +10,73 @@ interface WorkoutCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleComplete: () => void;
+  onDrop: (x: number, y: number) => void;
+  onDragMove: (x: number, y: number) => void;
+  onDragStateChange: (dragging: boolean) => void;
 }
 
-export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: WorkoutCardProps) {
+export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete, onDrop, onDragMove, onDragStateChange }: WorkoutCardProps) {
   const typeColor = WORKOUT_TYPE_COLORS[workout.type];
+  const [dragging, setDragging] = useState(false);
+  const dragPosition = useRef(new Animated.ValueXY()).current;
+  const onDropRef = useRef(onDrop);
+  const onDragMoveRef = useRef(onDragMove);
+  const onDragStateChangeRef = useRef(onDragStateChange);
+  onDropRef.current = onDrop;
+  onDragMoveRef.current = onDragMove;
+  onDragStateChangeRef.current = onDragStateChange;
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      dragPosition.setValue({ x: 0, y: 0 });
+      setDragging(true);
+      onDragStateChangeRef.current(true);
+    },
+    onPanResponderMove: (_, gesture) => {
+      dragPosition.setValue({ x: gesture.dx, y: gesture.dy });
+      onDragMoveRef.current(gesture.moveX, gesture.moveY);
+    },
+    onPanResponderRelease: (_, gesture) => {
+      onDropRef.current(gesture.moveX, gesture.moveY);
+      setDragging(false);
+      onDragStateChangeRef.current(false);
+      Animated.spring(dragPosition, {
+        toValue: { x: 0, y: 0 },
+        useNativeDriver: true,
+      }).start();
+    },
+    onPanResponderTerminate: () => {
+      setDragging(false);
+      onDragStateChangeRef.current(false);
+      Animated.spring(dragPosition, {
+        toValue: { x: 0, y: 0 },
+        useNativeDriver: true,
+      }).start();
+    },
+    onPanResponderTerminationRequest: () => false,
+  }), [dragPosition]);
 
   return (
-    <View style={[styles.card, { borderLeftColor: typeColor }, workout.unplanned && styles.unplanned, workout.completed && styles.completed]}>
+    <Animated.View
+      style={[
+        styles.card,
+        { borderLeftColor: typeColor },
+        workout.unplanned && styles.unplanned,
+        workout.completed && styles.completed,
+        dragging && styles.dragging,
+        { transform: [...dragPosition.getTranslateTransform(), { scale: dragging ? 1.03 : 1 }] },
+      ]}
+    >
       <View style={styles.header}>
+        <View
+          {...panResponder.panHandlers}
+          style={styles.dragHandle}
+          accessible
+          accessibilityLabel="Drag to move workout to another day"
+        >
+          <Ionicons name="reorder-three" size={18} color={colors.textMuted} />
+        </View>
+
         <TouchableOpacity onPress={onToggleComplete} style={[styles.checkBtn, workout.completed && styles.checked]}>
           {workout.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
         </TouchableOpacity>
@@ -61,7 +121,7 @@ export function WorkoutCard({ workout, onEdit, onDelete, onToggleComplete }: Wor
           ))}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -75,6 +135,11 @@ const styles = StyleSheet.create({
   },
   completed: {
     opacity: 0.6,
+  },
+  dragging: {
+    opacity: 0.95,
+    zIndex: 1,
+    elevation: 8,
   },
   unplanned: {
     borderStyle: 'dashed',
@@ -100,6 +165,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  dragHandle: {
+    paddingVertical: 4,
+    paddingRight: 2,
   },
   checkBtn: {
     width: 24,

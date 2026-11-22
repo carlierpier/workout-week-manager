@@ -77,6 +77,16 @@ export function useWeek() {
     persist(updated);
   }, [week, persist]);
 
+  const moveWorkout = useCallback((workoutId: string, day: number) => {
+    const updated = {
+      ...week,
+      workouts: week.workouts.map(w =>
+        w.id === workoutId ? { ...w, day } : w
+      ),
+    };
+    persist(updated);
+  }, [week, persist]);
+
   const deleteWorkout = useCallback((workoutId: string) => {
     const updated = {
       ...week,
@@ -127,6 +137,7 @@ export function useWeek() {
     goToCurrentWeek,
     addWorkout,
     updateWorkout,
+    moveWorkout,
     deleteWorkout,
     toggleComplete,
     setTarget,

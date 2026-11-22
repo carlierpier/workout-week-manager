@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, type ViewInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Workout } from '../types';
 import { DAY_NAMES_FULL } from '../types';
@@ -11,9 +11,15 @@ interface ListViewProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onDropWorkout: (id: string, x: number, y: number) => void;
+  onDragMove: (x: number, y: number) => void;
+  activeDropDay?: number;
+  registerDropTarget: (day: number, target: ViewInstance | null) => void;
+  isDragging: boolean;
+  onDragStateChange: (dragging: boolean) => void;
 }
 
-export function ListView({ workouts, onAdd, onEdit, onDelete, onToggleComplete }: ListViewProps) {
+export function ListView({ workouts, onAdd, onEdit, onDelete, onToggleComplete, onDropWorkout, onDragMove, activeDropDay, registerDropTarget, isDragging, onDragStateChange }: ListViewProps) {
   const sorted = [...workouts].sort((a, b) => {
     if (a.day !== b.day) return a.day - b.day;
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -27,7 +33,7 @@ export function ListView({ workouts, onAdd, onEdit, onDelete, onToggleComplete }
   }));
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} scrollEnabled={!isDragging}>
       {workouts.length === 0 && (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>No workouts planned this week.</Text>
@@ -38,7 +44,7 @@ export function ListView({ workouts, onAdd, onEdit, onDelete, onToggleComplete }
       {grouped.map(group => {
         const completedCount = group.workouts.filter(w => w.completed).length;
         return (
-          <View key={group.dayIndex} style={styles.dayGroup}>
+          <View key={group.dayIndex} ref={target => registerDropTarget(group.dayIndex, target)} style={styles.dayGroup}>
             <View style={styles.dayHeader}>
               <Text style={styles.dayName}>{group.dayName}</Text>
               <View style={styles.dayCount}>
@@ -58,11 +64,15 @@ export function ListView({ workouts, onAdd, onEdit, onDelete, onToggleComplete }
                   onEdit={() => onEdit(w.id)}
                   onDelete={() => onDelete(w.id)}
                   onToggleComplete={() => onToggleComplete(w.id)}
+                  onDrop={(x, y) => onDropWorkout(w.id, x, y)}
+                  onDragMove={onDragMove}
+                  onDragStateChange={onDragStateChange}
                 />
               ))
             ) : (
               <Text style={styles.restDay}>Rest day</Text>
             )}
+            {activeDropDay === group.dayIndex && <View pointerEvents="none" style={styles.dropIndicator} />}
           </View>
         );
       })}
@@ -93,6 +103,11 @@ const styles = StyleSheet.create({
   },
   dayGroup: {
     marginBottom: 20,
+  },
+  dropIndicator: {
+    height: 2,
+    backgroundColor: colors.accent,
+    marginTop: 2,
   },
   dayHeader: {
     flexDirection: 'row',

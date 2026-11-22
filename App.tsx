@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, type ViewInstance } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -208,13 +208,59 @@ export default function App() {
     weekId, week, loading,
     navigateWeek, goToCurrentWeek,
     addWorkout, updateWorkout, deleteWorkout,
-    toggleComplete, setTarget, copyToNextWeek,
+    moveWorkout, toggleComplete, setTarget, copyToNextWeek,
   } = useWeek();
 
   const { isWide } = useResponsive();
   const [view, setView] = useState<ViewMode>('calendar');
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [showReport, setShowReport] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [activeDropDay, setActiveDropDay] = useState<number>();
+  const dropTargets = useRef(new Map<number, ViewInstance>());
+  const hoverCheckId = useRef(0);
+
+  const registerDropTarget = (day: number, target: ViewInstance | null) => {
+    if (target) {
+      dropTargets.current.set(day, target);
+    } else {
+      dropTargets.current.delete(day);
+    }
+  };
+
+  const findDropTargetAtPoint = useCallback((x: number, y: number) => {
+    const targets = Array.from(dropTargets.current.entries());
+    return Promise.all(targets.map(([day, target]) => new Promise<{ day: number; left: number; top: number; width: number; height: number }>(resolve => {
+      target.measureInWindow((left, top, width, height) => resolve({ day, left, top, width, height }));
+    }))).then(bounds => {
+      const target = bounds.find(({ left, top, width, height }) =>
+        x >= left && x <= left + width && y >= top && y <= top + height
+      );
+      return target?.day;
+    });
+  }, []);
+
+  const handleDragMove = (x: number, y: number) => {
+    const checkId = ++hoverCheckId.current;
+    findDropTargetAtPoint(x, y).then(target => {
+      if (checkId === hoverCheckId.current) setActiveDropDay(target);
+    });
+  };
+
+  const handleDragStateChange = (dragging: boolean) => {
+    setIsDragging(dragging);
+    if (!dragging) {
+      hoverCheckId.current += 1;
+      setActiveDropDay(undefined);
+    }
+  };
+
+  const handleDropWorkout = (workoutId: string, x: number, y: number) => {
+    findDropTargetAtPoint(x, y).then(target => {
+      setActiveDropDay(undefined);
+      if (target != null) moveWorkout(workoutId, target);
+    });
+  };
 
   const handleAdd = (day: number) => {
     setModal({ open: true, day });
@@ -328,6 +374,12 @@ export default function App() {
             onEdit={handleEdit}
             onDelete={deleteWorkout}
             onToggleComplete={toggleComplete}
+            onDropWorkout={handleDropWorkout}
+            onDragMove={handleDragMove}
+            activeDropDay={activeDropDay}
+            registerDropTarget={registerDropTarget}
+            isDragging={isDragging}
+            onDragStateChange={handleDragStateChange}
           />
         ) : (
           <ListView
@@ -336,6 +388,12 @@ export default function App() {
             onEdit={handleEdit}
             onDelete={deleteWorkout}
             onToggleComplete={toggleComplete}
+            onDropWorkout={handleDropWorkout}
+            onDragMove={handleDragMove}
+            activeDropDay={activeDropDay}
+            registerDropTarget={registerDropTarget}
+            isDragging={isDragging}
+            onDragStateChange={handleDragStateChange}
           />
         )}
 

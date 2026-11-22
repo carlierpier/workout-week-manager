@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, type ViewInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Workout } from '../types';
 import { colors } from '../theme';
@@ -11,14 +11,22 @@ interface DayColumnProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onDropWorkout: (id: string, x: number, y: number) => void;
+  onDragMove: (x: number, y: number) => void;
+  activeDropDay?: number;
+  registerDropTarget: (day: number, target: ViewInstance | null) => void;
+  isDragging: boolean;
+  onDragStateChange: (dragging: boolean) => void;
+  day: number;
 }
 
-export function DayColumn({ dayName, workouts, onAdd, onEdit, onDelete, onToggleComplete }: DayColumnProps) {
+export function DayColumn({ day, dayName, workouts, onAdd, onEdit, onDelete, onToggleComplete, onDropWorkout, onDragMove, activeDropDay, registerDropTarget, isDragging, onDragStateChange }: DayColumnProps) {
   const allDone = workouts.length > 0 && workouts.every(w => w.completed);
   const completedCount = workouts.filter(w => w.completed).length;
+  const isDropTarget = activeDropDay === day;
 
   return (
-    <View style={[styles.column, allDone && styles.columnDone]}>
+    <View ref={target => registerDropTarget(day, target)} style={[styles.column, allDone && styles.columnDone]}>
       <View style={styles.header}>
         <Text style={styles.dayName}>{dayName}</Text>
         {workouts.length > 0 && (
@@ -28,7 +36,7 @@ export function DayColumn({ dayName, workouts, onAdd, onEdit, onDelete, onToggle
         )}
       </View>
 
-      <ScrollView style={styles.workouts} contentContainerStyle={styles.workoutsContent}>
+      <ScrollView style={styles.workouts} contentContainerStyle={styles.workoutsContent} scrollEnabled={!isDragging}>
         {workouts.map(w => (
           <WorkoutCard
             key={w.id}
@@ -36,8 +44,12 @@ export function DayColumn({ dayName, workouts, onAdd, onEdit, onDelete, onToggle
             onEdit={() => onEdit(w.id)}
             onDelete={() => onDelete(w.id)}
             onToggleComplete={() => onToggleComplete(w.id)}
+            onDrop={(x, y) => onDropWorkout(w.id, x, y)}
+            onDragMove={onDragMove}
+            onDragStateChange={onDragStateChange}
           />
         ))}
+        {isDropTarget && <View pointerEvents="none" style={styles.dropIndicator} />}
       </ScrollView>
 
       <TouchableOpacity style={styles.addBtn} onPress={onAdd}>
@@ -61,6 +73,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.success + '40',
     backgroundColor: colors.success + '0a',
+  },
+  dropIndicator: {
+    height: 2,
+    backgroundColor: colors.accent,
+    marginHorizontal: 2,
+    marginTop: 2,
+    marginBottom: 8,
   },
   header: {
     flexDirection: 'row',
