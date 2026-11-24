@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -9,6 +10,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  type ScrollViewInstance,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { WorkoutType } from '../types';
@@ -38,9 +40,33 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
   const [actualDistance, setActualDistance] = useState(initialActualDistance != null ? String(initialActualDistance) : '');
   const [goals, setGoals] = useState<string[]>(initialGoals ?? []);
   const [unplanned, setUnplanned] = useState(initialUnplanned ?? false);
+  const formScrollView = useRef<ScrollViewInstance>(null);
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isEditing = initialName != null;
   const defaultName = WORKOUT_TYPE_DEFAULT_NAMES[type];
   const availableGoalTags = [...new Set([...goalTags, ...goals])];
+
+  const scheduleScrollToBottom = (delay: number) => {
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      scrollTimeout.current = null;
+      requestAnimationFrame(() => formScrollView.current?.scrollToEnd({ animated: true }));
+    }, delay);
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      return () => {
+        if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+      };
+    }
+
+    const subscription = Keyboard.addListener('keyboardDidShow', () => scheduleScrollToBottom(100));
+    return () => {
+      subscription.remove();
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    };
+  }, [visible]);
 
   const toggleGoal = (goal: string) => {
     setGoals(prev => prev.includes(goal) ? prev.filter(item => item !== goal) : [...prev, goal]);
@@ -81,7 +107,12 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            ref={formScrollView}
+            style={styles.body}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          >
             <Text style={styles.label}>Type</Text>
             <View style={styles.typeSelector}>
               {WORKOUT_TYPES.map(t => (
@@ -117,7 +148,9 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
               onChangeText={setName}
               placeholder={defaultName ?? 'e.g. PULL at Work, 5K Run...'}
               placeholderTextColor={colors.textMuted}
-              autoFocus
+              autoComplete="off"
+              textContentType="none"
+              onFocus={() => scheduleScrollToBottom(400)}
             />
 
             {hasDistance(type) && (
@@ -130,6 +163,9 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
                   placeholder="e.g. 5.0"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="decimal-pad"
+                  autoComplete="off"
+                  textContentType="none"
+                  onFocus={() => scheduleScrollToBottom(400)}
                 />
                 {isEditing && (
                   <>
@@ -141,6 +177,9 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
                       placeholder="Leave empty if same as planned"
                       placeholderTextColor={colors.textMuted}
                       keyboardType="decimal-pad"
+                      autoComplete="off"
+                      textContentType="none"
+                      onFocus={() => scheduleScrollToBottom(400)}
                     />
                   </>
                 )}
