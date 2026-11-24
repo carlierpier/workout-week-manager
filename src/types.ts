@@ -40,6 +40,8 @@ export interface Workout {
   type: WorkoutType;
   completed: boolean;
   unplanned?: boolean;
+  fixedDistance?: boolean;
+  adjustOthers?: boolean;
   day: number; // 0=Monday, 6=Sunday
   distance?: number; // km, for running and indoor-bike
   actualDistance?: number; // km actually done (may differ from planned)

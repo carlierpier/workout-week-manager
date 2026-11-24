@@ -27,19 +27,23 @@ interface WorkoutModalProps {
   initialGoals?: string[];
   initialCompleted?: boolean;
   initialUnplanned?: boolean;
+  initialFixedDistance?: boolean;
+  initialAdjustOthers?: boolean;
   goalTags: string[];
-  onSave: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => void;
-  onSaveAndComplete: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => void;
+  onSave: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean, fixedDistance?: boolean, adjustOthers?: boolean) => void;
+  onSaveAndComplete: (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean, fixedDistance?: boolean, adjustOthers?: boolean) => void;
   onClose: () => void;
 }
 
-export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialActualDistance, initialGoals, initialCompleted, initialUnplanned, goalTags, onSave, onSaveAndComplete, onClose }: WorkoutModalProps) {
+export function WorkoutModal({ visible, day, initialName, initialType, initialDistance, initialActualDistance, initialGoals, initialCompleted, initialUnplanned, initialFixedDistance, initialAdjustOthers, goalTags, onSave, onSaveAndComplete, onClose }: WorkoutModalProps) {
   const [name, setName] = useState(initialName ?? '');
   const [type, setType] = useState<WorkoutType>(initialType ?? 'strength');
   const [distance, setDistance] = useState(initialDistance != null ? String(initialDistance) : '');
   const [actualDistance, setActualDistance] = useState(initialActualDistance != null ? String(initialActualDistance) : '');
   const [goals, setGoals] = useState<string[]>(initialGoals ?? []);
   const [unplanned, setUnplanned] = useState(initialUnplanned ?? false);
+  const [fixedDistance, setFixedDistance] = useState(initialFixedDistance ?? false);
+  const [adjustOthers, setAdjustOthers] = useState(initialAdjustOthers ?? false);
   const formScrollView = useRef<ScrollViewInstance>(null);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isEditing = initialName != null;
@@ -83,12 +87,12 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
 
   const handleSubmit = () => {
     const p = buildPayload();
-    if (p) onSave(p.finalName, type, p.dist, p.parsedGoals, p.actDist, unplanned || undefined);
+    if (p) onSave(p.finalName, type, p.dist, p.parsedGoals, p.actDist, unplanned || undefined, fixedDistance, adjustOthers);
   };
 
   const handleSubmitAndComplete = () => {
     const p = buildPayload();
-    if (p) onSaveAndComplete(p.finalName, type, p.dist, p.parsedGoals, p.actDist, unplanned || undefined);
+    if (p) onSaveAndComplete(p.finalName, type, p.dist, p.parsedGoals, p.actDist, unplanned || undefined, fixedDistance, adjustOthers);
   };
 
   const canSave = !!(name.trim() || defaultName);
@@ -183,6 +187,28 @@ export function WorkoutModal({ visible, day, initialName, initialType, initialDi
                     />
                   </>
                 )}
+                <TouchableOpacity
+                  style={styles.checkboxRow}
+                  onPress={() => setFixedDistance(v => !v)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: fixedDistance }}
+                >
+                  <View style={[styles.checkbox, fixedDistance && styles.checkboxChecked]}>
+                    {fixedDistance && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Fix this workout distance</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.checkboxRow}
+                  onPress={() => setAdjustOthers(v => !v)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: adjustOthers }}
+                >
+                  <View style={[styles.checkbox, adjustOthers && styles.checkboxChecked]}>
+                    {adjustOthers && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Change other workouts when needed</Text>
+                </TouchableOpacity>
               </>
             )}
 

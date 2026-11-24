@@ -31,6 +31,8 @@ type ModalState =
       editGoals?: string[];
       editCompleted?: boolean;
       editUnplanned?: boolean;
+      editFixedDistance?: boolean;
+      editAdjustOthers?: boolean;
     };
 
 function TargetRow({ type, target, totalKm, onSetTarget }: {
@@ -323,23 +325,25 @@ export default function App() {
       editGoals: w.goals,
       editCompleted: w.completed,
       editUnplanned: w.unplanned,
+      editFixedDistance: w.fixedDistance,
+      editAdjustOthers: w.adjustOthers,
     });
   };
 
-  const handleSave = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => {
+  const handleSave = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean, fixedDistance?: boolean, adjustOthers?: boolean) => {
     if (modal.open && modal.editId) {
-      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned);
+      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned, undefined, fixedDistance, adjustOthers);
     } else if (modal.open) {
-      addWorkout(modal.day, name, type, distance, goals, actualDistance, false, unplanned);
+      addWorkout(modal.day, name, type, distance, goals, actualDistance, false, unplanned, fixedDistance, adjustOthers);
     }
     setModal({ open: false });
   };
 
-  const handleSaveAndComplete = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => {
+  const handleSaveAndComplete = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean, fixedDistance?: boolean, adjustOthers?: boolean) => {
     if (modal.open && modal.editId) {
-      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned, true);
+      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned, true, fixedDistance, adjustOthers);
     } else if (modal.open) {
-      addWorkout(modal.day, name, type, distance, goals, actualDistance, true, unplanned);
+      addWorkout(modal.day, name, type, distance, goals, actualDistance, true, unplanned, fixedDistance, adjustOthers);
     }
     setModal({ open: false });
   };
@@ -468,6 +472,8 @@ export default function App() {
             goalTags={goalTargets.map(goal => goal.name)}
             initialCompleted={modal.editCompleted}
             initialUnplanned={modal.editUnplanned}
+            initialFixedDistance={modal.editFixedDistance}
+            initialAdjustOthers={modal.editAdjustOthers}
             onSave={handleSave}
             onSaveAndComplete={handleSaveAndComplete}
             onClose={() => setModal({ open: false })}
