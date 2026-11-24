@@ -67,11 +67,11 @@ export function useWeek() {
     persist({ ...week, workouts });
   }, [week, persist]);
 
-  const updateWorkout = useCallback((workoutId: string, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => {
+  const updateWorkout = useCallback((workoutId: string, name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean, completed?: boolean) => {
     const updated = {
       ...week,
       workouts: week.workouts.map(w =>
-        w.id === workoutId ? { ...w, name, type, distance, actualDistance, goals, unplanned } : w
+        w.id === workoutId ? { ...w, name, type, distance, actualDistance, goals, unplanned, completed: completed ?? w.completed } : w
       ),
     };
     persist(updated);

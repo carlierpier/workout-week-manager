@@ -337,8 +337,7 @@ export default function App() {
 
   const handleSaveAndComplete = (name: string, type: WorkoutType, distance?: number, goals?: string[], actualDistance?: number, unplanned?: boolean) => {
     if (modal.open && modal.editId) {
-      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned);
-      toggleComplete(modal.editId);
+      updateWorkout(modal.editId, name, type, distance, goals, actualDistance, unplanned, true);
     } else if (modal.open) {
       addWorkout(modal.day, name, type, distance, goals, actualDistance, true, unplanned);
     }
